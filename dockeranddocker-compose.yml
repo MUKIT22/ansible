@@ -1,0 +1,44 @@
+---
+- name: Install Docker and Docker Compose
+  hosts: tag_Type_instance  # Define the appropriate host group or pattern here
+  become: yes  # Enable privilege escalation (sudo)
+
+  tasks:
+    - name: Update package cache
+      apt:
+        update_cache: yes
+      when: ansible_os_family == "Debian"  # For Ubuntu, which is Debian-based
+
+    - name: Install Docker
+      apt:
+        name: docker.io
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: Install Docker Compose
+      shell: >
+        curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-{{ ansible_system }}-{{ ansible_architecture }}"
+        -o /usr/local/bin/docker-compose && chmod +x /usr/local/bin/docker-compose
+      args:
+        executable: /bin/bash
+      register: compose_install
+      when: ansible_os_family == "Debian"
+
+    - name: Check Docker Compose version
+      command: docker-compose --version
+      changed_when: false
+      failed_when: "'docker-compose version' not in compose_install.stdout"
+      register: compose_version
+      when: ansible_os_family == "Debian" and compose_install is succeeded
+
+    - name: Start Docker service
+      systemd:
+        name: docker
+        state: started
+      when: ansible_os_family == "Debian"
+
+    - name: Enable Docker service at boot
+      systemd:
+        name: docker
+        enabled: yes
+      when: ansible_os_family == "Debian"
