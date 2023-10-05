@@ -1,7 +1,12 @@
 ---
-- name: Install Docker and Docker Compose
+- name: Install Docker and Docker Compose, and Deploy Application
   hosts: tag_Type_instance  # Define the appropriate host group or pattern here
   become: yes  # Enable privilege escalation (sudo)
+
+  vars:
+    REPO_URL: 'https://github.com/MUKIT22/vprofile-project'
+    BRANCH_NAME: 'main'  # Change to the desired branch name
+    COMPOSE_VERSION: 'latest'
 
   tasks:
     - name: Update package cache
@@ -41,4 +46,19 @@
       systemd:
         name: docker
         enabled: yes
+      when: ansible_os_family == "Debian"
+
+    - name: Clone GitHub repository
+      git:
+        repo: "{{ REPO_URL }}"
+        dest: /  # Specify the folder where you want to clone the repository
+        version: "{{ BRANCH_NAME }}"
+      when: ansible_os_family == "Debian"
+
+    - name: Change directory to the project folder
+      command: cd /vprofile-project # Change to the actual path
+      when: ansible_os_family == "Debian"
+
+    - name: Run docker-compose up
+      command: docker-compose up -d
       when: ansible_os_family == "Debian"
